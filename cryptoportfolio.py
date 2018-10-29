@@ -79,7 +79,7 @@ class Ui_MainWindow(object):
         # connect functions to buttons
         self.addButton.clicked.connect(self.addcrypto)
         self.delButton.clicked.connect(self.delcrypto)
-        self.viewButton.clicked.connect(self.addcrypto)
+        self.viewButton.clicked.connect(self.viewfolio)
 
         
         
@@ -129,7 +129,63 @@ class Ui_MainWindow(object):
             print(delcurrency + ' has been removed from portfilio')
             file.to_csv('portfolio.csv', index = False)
             QMessageBox.about(None, "Stop", str(delcurrency + " has been removed from portfolio !!"))       
+        self.cryptoDel.clear()   
+            
+    def viewfolio(self):
+        '''this function accesses coinmarket cap api 
+            and displays current market info related to user portfolio'''
+           
+        listings_url = 'https://api.coinmarketcap.com/v2/listings/?convert=USD'
+        api = {
+            'X-CMC_PRO_API_KEY': 'c1aa9072-eedf-48a3-8e7d-f5fe74a457b8'    
+        }
+        #api call pass api key to header for authentication
+        request = requests.get(listings_url , headers=api)
+        result = request.json() 
+        data = result['data']
+        #save symbol and id in a dictionary 
+        ticker_url_pairs = {}
+        for x in data:
+            symbol = x['symbol']
+            url = x['id']
+            ticker_url_pairs[symbol] = url
+    
+        
+        file = pd.read_csv('portfolio.csv' ) 
+        file.columns = map(str.upper, file.columns)
+        
+        total_value = 0.00
+        #price = 0.00
+        table = PrettyTable(['Name','Symbol', 'Amount Owned', 'USD' + ' Value', 'Price'])
+   
+        for i, row in file.iterrows():
+            ticker = row['CURRENCY'] 
+            shares = row['SHARES']
+        
+            ticker_url = 'https://api.coinmarketcap.com/v2/ticker/' + str(ticker_url_pairs[ticker]) + '/' + '?structure=array&convert=' + 'USD'
+            request = requests.get(ticker_url, headers=api)
+            result = request.json()
+            key = result['data'][0]
+            name = key['name']
+            symbol = key['symbol']
+            quotes = key['quotes']['USD']
+            price = quotes['price']
 
+            value = round(price * float(shares),2)
+            total_value = round(value + total_value,2)
+                    
+            table.add_row([name , '  (' + symbol + ')', str(shares),'$' +str(value),'$' + str(price)])
+                
+        table.add_row([' ',' ',' ',' ' ,' '])
+        table.add_row(['Total Portfolio Value :','$' + str(total_value),' ' , ' ', ' '])
+        table_string = table.get_string()
+        self.textBrowser.setText(table_string).setFontFamily("monospace")
+        
+        #print(table)
+        #print()
+       # print('Total Portfolio Value: ' +'$' + str(total_value))
+        #print()
+        
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
