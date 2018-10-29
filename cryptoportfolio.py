@@ -78,7 +78,7 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
         # connect functions to buttons
         self.addButton.clicked.connect(self.addcrypto)
-        self.delButton.clicked.connect(self.addcrypto)
+        self.delButton.clicked.connect(self.delcrypto)
         self.viewButton.clicked.connect(self.addcrypto)
 
         
@@ -112,9 +112,23 @@ class Ui_MainWindow(object):
         self.amountAdd.clear()
         self.cryptoAdd.clear()
         writer.writerow({'Currency' :currency,'Shares': amount})
-        QMessageBox.about(None, "Stop", str(amount + ': ' + currency + " has been added to portfiolio"))   
+        QMessageBox.about(None, "Stop", str(amount + ': ' + currency + " has been added to portfiolio !!"))   
         file.close()        
-       
+
+    def delcrypto(self): 
+        '''this function deletes crypto currency from 
+            the portfolio csv file fromn user input'''
+        
+        file_empty = os.stat('portfolio.csv').st_size == 0 #check if file is empty
+        if file_empty:
+            QMessageBox.about(None, "Stop", " Portfolio is empty please create a portfolio !!")   
+        else:
+            file = pd.read_csv('portfolio.csv')
+            delcurrency = self.cryptoDel.text().upper()
+            file = file[file.Currency.str.contains(delcurrency) == False]
+            print(delcurrency + ' has been removed from portfilio')
+            file.to_csv('portfolio.csv', index = False)
+            QMessageBox.about(None, "Stop", str(delcurrency + " has been removed from portfolio !!"))       
 
 if __name__ == "__main__":
     import sys
