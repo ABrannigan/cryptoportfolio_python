@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 29 18:24:26 2018
 
-# Form implementation generated from reading ui file 'C:\Users\adam\Desktop\college\L8 Cert IT Sligo\Secure Software Developement\login.ui'
-#
-# Created by: PyQt5 UI code generator 5.11.3
-#
-# WARNING! All changes made in this file will be lost!
-
+@author: adam
+"""
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
 from PyQt5.QtWidgets import QMessageBox
@@ -82,7 +80,6 @@ class Ui_Register_Dialog(object):
         self.retranslateUi(Register_Dialog)
         QtCore.QMetaObject.connectSlotsByName(Register_Dialog)
         
-        
         self.add_btn.clicked.connect(self.addUser)
         self.cancel_btn.clicked.connect(Register_Dialog.close)
         
@@ -90,25 +87,20 @@ class Ui_Register_Dialog(object):
     def retranslateUi(self, Register_Dialog):
         _translate = QtCore.QCoreApplication.translate
         Register_Dialog.setWindowTitle(_translate("Register_Dialog", "Register New User"))
-        self.groupBox.setTitle(_translate("Register_Dialog", "I Love Ham!"))
+        self.groupBox.setTitle(_translate("Register_Dialog", "Please Fill Fields Below"))
         self.label_2.setText(_translate("Register_Dialog", "Username"))
         self.label.setText(_translate("Register_Dialog", "Password"))
         self.label_3.setText(_translate("Register_Dialog", "Confirm Password"))
-        self.label_4.setText(_translate("Register_Dialog", "Not Included: Phone, Address, Social Security Number, Credit Card..."))
+        self.label_4.setText(_translate("Register_Dialog", "Paswrod must be contain mix of upper/lower case numbers an special chasrs!"))
         self.add_btn.setText(_translate("Register_Dialog", "Add"))
         self.cancel_btn.setText(_translate("Register_Dialog", "Cancel"))
         
         
     def addUser(self):
-        
-        
         pFile = pd.read_csv('Pfile.csv',header='infer')
-       # pFile = open('pFile.csv', 'a')
-        
         username = self.username_lineEdit.text()
         password = self.password_lineEdit.text()
         cpassword = self.confirmPassword_lineEdit.text()
-        
         
         if not username:
             QMessageBox.about(None, "Stop", " Username Missing!!")#. setDefaultButton()
@@ -132,7 +124,7 @@ class Ui_Register_Dialog(object):
             pFile.to_csv('Pfile.csv')
             QMessageBox.about(None, 'Awesome!!', 'User Added SUCCESSFULLY!')
             #f.close()'''
-            f = open('Pfile.csv', 'a')
+            f = open('Pfile.csv', 'a',encoding = 'utf8')
             fields =['Name','Passwords']
             writer = csv.DictWriter(f, fieldnames = fields, lineterminator = '\n')
             file_empty = os.stat('pFile.csv').st_size == 0 #check if file is empty

@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 29 18:24:26 2018
 
-# Form implementation generated from reading ui file 'C:\Users\adam\Desktop\college\L8 Cert IT Sligo\Secure Software Developement\login.ui'
-#
-# Created by: PyQt5 UI code generator 5.11.3
-#
-# WARNING! All changes made in this file will be lost!
+@author: adam
+"""
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 import cryptoportfolio
 import register
-from register import *
+import csv
+import pandas as pd
+import os
 
 Reg_Logic = register.Reg_Logic()
+Cryp_Logic = cryptoportfolio.Cryp_Logic()
+
 
 class Ui_Login_Dialog(object):
-    
-    #reg = register.Reg_Logic()
     
     def setupUi(self, Login_Dialog):
         Login_Dialog.setObjectName("Login_Dialog")
@@ -70,6 +72,8 @@ class Ui_Login_Dialog(object):
         QtCore.QMetaObject.connectSlotsByName(Login_Dialog)
         
         self.newUser_btn.clicked.connect(Reg_Logic.regView)
+        self.login_btn.clicked.connect(self.login)
+        self.cancel_btn.clicked.connect(Login_Dialog.close)
 
         
     
@@ -77,12 +81,34 @@ class Ui_Login_Dialog(object):
     def retranslateUi(self, Login_Dialog):
         _translate = QtCore.QCoreApplication.translate
         Login_Dialog.setWindowTitle(_translate("Login_Dialog", "TPayne\'s User Login"))
-        self.groupBox.setTitle(_translate("Login_Dialog", "Super Ham!"))
+        self.groupBox.setTitle(_translate("Login_Dialog", "Enter Credentials!"))
         self.label.setText(_translate("Login_Dialog", "Username"))
         self.label_2.setText(_translate("Login_Dialog", "Password"))
         self.newUser_btn.setText(_translate("Login_Dialog", "New User"))
         self.login_btn.setText(_translate("Login_Dialog", "Login"))
         self.cancel_btn.setText(_translate("Login_Dialog", "Cancel"))
+        
+    def login(self):
+        data_pFile = pd.read_csv('Pfile.csv',header='infer',encoding='utf8')
+        data_pFile.columns = ['Name','Passwords']
+        print(data_pFile)
+        username = self.user_lineEdit.text()
+        password = self.password_lineEdit.text()
+        check = False
+    
+        for i , row in data_pFile.iterrows():
+            print('rowN=  '+row['Name']+'  checkp=  '+row['Passwords'])
+            print('name=  '+username+'  pword=  '+password)
+            if (row['Name'] == username) & (row['Passwords'] == password):
+                check = True
+            
+        if check == False:
+            QMessageBox.about(None, "Stop", " Incorrect Username and Password !!")        
+        else:
+            
+            Cryp_Logic.cryptoView()
+            #df.loc[(df['column_name'] == some_value) & df['other_column'].isin(some_values)]
+
 
 '''
 if __name__ == "__main__":

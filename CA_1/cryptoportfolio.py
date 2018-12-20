@@ -188,7 +188,18 @@ class Ui_MainWindow(object):
         table.add_row(['Total Portfolio Value :','$' + str(total_value),' ' , ' ', ' '])
         table_string = table.get_string()
         self.textBrowser.setText(table_string)
-        
+
+class Cryp_Logic:
+    
+    #def __init__(self):
+
+    def cryptoView(self):
+            self.    MainWindow = QtWidgets.QMainWindow()
+            self.ui = Ui_MainWindow()
+            self.ui.setupUi(self.MainWindow)
+            self.MainWindow.show() 
+            
+            
     #def setimage(self):
         #self.frame.setQFrame('btc.jpeg')
         
@@ -199,16 +210,15 @@ class Ui_MainWindow(object):
         
 if __name__ == "__main__":
     import sys
-     #create password file give col nemes and close
-    pFile = open('pFile.csv', 'a')
+    #create password file give col nemes and close
+    pFile = open('pFile.csv', 'a',encoding = 'utf8')
     fields =['Name','Passwords']
     writer = csv.DictWriter(pFile, fieldnames = fields, lineterminator = '\n')
     file_empty = os.stat('pFile.csv').st_size == 0 #check if file is empty
     if file_empty:
        writer.writeheader()
-       writer.writerow({'Name' :'test','Passwords': 'test'})
+       writer.writerow({'Name' :'test','Passwords': 'test'},)
     pFile.close
-    
     app = QtWidgets.QApplication(sys.argv)
     Login_Dialog = QtWidgets.QDialog()
     ui = login.Ui_Login_Dialog()
