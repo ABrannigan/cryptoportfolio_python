@@ -13,8 +13,13 @@ import re
 import cryptoportfolio
 import login
 import csv
+import base64
+import binascii
 import os
-#reg = Reg_Logic()
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 class Ui_Register_Dialog(object):
     
@@ -107,30 +112,35 @@ class Ui_Register_Dialog(object):
         elif username in pFile:
             QMessageBox.about(None, "Stop", " Username Taken !!")
         elif (len(password)<6 or len(password)>12):
-            QMessageBox.about(None, "Stop", " Username Must be between 6-12 Chars long")
+            QMessageBox.about(None, "Stop", " Password Must be between 6-12 Chars long")
         elif not re.search("[a-z]",password):
-            QMessageBox.about(None, "Stop", " Username Must have lower case letters !!eg( [A-Z])")
+            QMessageBox.about(None, "Stop", " Password Must have lower case letters !!eg( [A-Z])")
         elif not re.search("[0-9]",password):
-            QMessageBox.about(None, "Stop", " Username Must have @ least 1 number !! eg([0-9])")
+            QMessageBox.about(None, "Stop", " Password Must have @ least 1 number !! eg([0-9])")
         elif not re.search("[A-Z]",password):
-            QMessageBox.about(None, "Stop", " Username Must have  @ least 1 upper case letter !!eg( [A-Z])")
+            QMessageBox.about(None, "Stop", " Password Must have  @ least 1 upper case letter !!eg( [A-Z])")
         elif not re.search("[$#@]",password):
-            QMessageBox.about(None, "Stop", " Username Must have special char !! eg([$#@])")
+            QMessageBox.about(None, "Stop", " Password Must have special char !! eg([$#@])")
         elif password != cpassword:
             QMessageBox.about(None, 'Dang it!', 'Passwords Do Not Match')
         else:
-            '''row = pd.Series([username,password])
-            pFile.append(row,ignore_index=True)
-            pFile.to_csv('Pfile.csv')
-            QMessageBox.about(None, 'Awesome!!', 'User Added SUCCESSFULLY!')
-            #f.close()'''
-            f = open('Pfile.csv', 'a',encoding = 'utf8')
-            fields =['Name','Passwords']
+            print(username)
+            salt = str(os.urandom(16))
+            salt = salt.replace('\\','')
+            salt = salt.encode()
+            print('Salt before passed= '+str(salt))
+            password = Reg_Logic.encrypt(self,password,salt)
+            password.decode('utf-8')
+            print(password)
+            cpassword = None
+            f = open('Pfile.csv', 'a')
+            fields =['Salt','Name','Passwords']
             writer = csv.DictWriter(f, fieldnames = fields, lineterminator = '\n')
             file_empty = os.stat('pFile.csv').st_size == 0 #check if file is empty
             if file_empty:
                writer.writeheader()
-            writer.writerow({'Name' :username,'Passwords': password})
+            #salt =binascii.hexlify(salt).decode()
+            writer.writerow({'Salt' :salt,'Name': username,'Passwords': password},)
             f.close
             QMessageBox.about(None, 'Awesome!!', 'User Added SUCCESSFULLY!')
     
@@ -146,10 +156,49 @@ class Reg_Logic:
             self.Register_Dialog.show()    
             
     
+    def encrypt(self,plaintext,salty):
+        password = plaintext.encode('utf-8')
+        print('password = '+str(password))
+        salt = salty
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt ,
+            iterations=100000,
+            backend=default_backend() )
+        key = base64.urlsafe_b64encode(kdf.derive(password))
+        f = Fernet(key)
+        token = f.encrypt(password)
+        print('Salt after encrypt= '+str(salt))
+        print('Cypher encrypt= '+ str(token))
+        return token
     
-            
-                
-              
+    def decrypt(self,cypher,plaintext,salty):
+        #try:
+            password = plaintext.encode('utf-8')
+            print('password decrypt in= '+str(password))
+            cypher = cypher[2:-1]#
+            cypher = cypher.encode('utf-8')
+            print('cypher decrypt= '+str(cypher))
+            salt = salty[2:-1]
+            salt = salt.replace('\\','')
+            salt = salt.encode()
+            print('salt = '+str(salt))
+            #salt = salt
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=salt,
+                iterations=100000,
+                backend=default_backend() )
+            key = base64.urlsafe_b64encode(kdf.derive(password))
+            #key = base64.urlsafe_b64encode(kdf.derive(password))
+            f = Fernet(key)
+            token = f.decrypt(cypher)
+            print(token)
+            return token.decode('utf-8')
+        #except:
+            #print('Sorry Invalid Token')
                 
    
         

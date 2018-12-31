@@ -12,9 +12,10 @@ import register
 import csv
 import pandas as pd
 import os
-
+import base64
+import binascii
 Reg_Logic = register.Reg_Logic()
-Cryp_Logic = cryptoportfolio.Cryp_Logic()
+Cryp_Logic = cryptoportfolio.Cryp_Logic
 
 
 class Ui_Login_Dialog(object):
@@ -80,7 +81,7 @@ class Ui_Login_Dialog(object):
     
     def retranslateUi(self, Login_Dialog):
         _translate = QtCore.QCoreApplication.translate
-        Login_Dialog.setWindowTitle(_translate("Login_Dialog", "TPayne\'s User Login"))
+        Login_Dialog.setWindowTitle(_translate("Login_Dialog", "User Login"))
         self.groupBox.setTitle(_translate("Login_Dialog", "Enter Credentials!"))
         self.label.setText(_translate("Login_Dialog", "Username"))
         self.label_2.setText(_translate("Login_Dialog", "Password"))
@@ -89,24 +90,31 @@ class Ui_Login_Dialog(object):
         self.cancel_btn.setText(_translate("Login_Dialog", "Cancel"))
         
     def login(self):
-        data_pFile = pd.read_csv('Pfile.csv',header='infer',encoding='utf8')
-        data_pFile.columns = ['Name','Passwords']
-        print(data_pFile)
+        data_pFile = pd.read_csv('Pfile.csv',header='infer')
+        data_pFile.columns = ['Salt','Name','Passwords']
         username = self.user_lineEdit.text()
+        print(username)
         password = self.password_lineEdit.text()
+        print('password= ' + password)
         check = False
     
         for i , row in data_pFile.iterrows():
-            print('rowN=  '+row['Name']+'  checkp=  '+row['Passwords'])
-            print('name=  '+username+'  pword=  '+password)
-            if (row['Name'] == username) & (row['Passwords'] == password):
-                check = True
+            salt = row['Salt']
+            storedName = row['Name']
+            storedPassword = row['Passwords']
+            if storedName == username:
+                print('storedPassword = '+str(storedPassword))
+                print('storedSalt= '+str(salt))
+                decrypted_password = Reg_Logic.decrypt(storedPassword, password, salt)
+                print('Decrypted password = ' +str(decrypted_password))
+                if str(decrypted_password) == str(password):
+                    check = True
             
         if check == False:
             QMessageBox.about(None, "Stop", " Incorrect Username and Password !!")        
         else:
             
-            Cryp_Logic.cryptoView()
+            Cryp_Logic.cryptoView(self)
             #df.loc[(df['column_name'] == some_value) & df['other_column'].isin(some_values)]
 
 

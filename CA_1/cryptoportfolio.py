@@ -9,7 +9,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon, QPixmap
 import csv
 import os 
-#import Pyqt5 
+import sys
 import pandas as pd
 import requests
 from prettytable import PrettyTable
@@ -209,16 +209,19 @@ class Cryp_Logic:
         #print()
         
 if __name__ == "__main__":
-    import sys
-    #create password file give col nemes and close
-    pFile = open('pFile.csv', 'a',encoding = 'utf8')
-    fields =['Name','Passwords']
-    writer = csv.DictWriter(pFile, fieldnames = fields, lineterminator = '\n')
-    file_empty = os.stat('pFile.csv').st_size == 0 #check if file is empty
-    if file_empty:
-       writer.writeheader()
-       writer.writerow({'Name' :'test','Passwords': 'test'},)
+    #checks to open if nofile there will crete one
+    pFile = open('pFile.csv','a')
     pFile.close
+    fields =['Salt','Name','Passwords']
+    file_empty = os.stat('pFile.csv').st_size == 0
+    if file_empty:
+        pFile = open('pFile.csv', 'a')
+        #create password file give col nemes and close
+        writer = csv.DictWriter(pFile, fieldnames = fields, lineterminator = '\n')
+        writer.writeheader()
+        writer.writerow({'Salt' :0,'Name' :'test','Passwords': 'test'},)
+        pFile.close
+        
     app = QtWidgets.QApplication(sys.argv)
     Login_Dialog = QtWidgets.QDialog()
     ui = login.Ui_Login_Dialog()
