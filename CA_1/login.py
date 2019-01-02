@@ -9,14 +9,15 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import cryptoportfolio
 import register
-import csv
 import pandas as pd
-import os
 import base64
-import binascii
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import atexit
 Reg_Logic = register.Reg_Logic()
 Cryp_Logic = cryptoportfolio.Cryp_Logic
-
 
 class Ui_Login_Dialog(object):
     
@@ -115,9 +116,30 @@ class Ui_Login_Dialog(object):
         else:
             
             Cryp_Logic.cryptoView(self)
+            global filenameH 
+            filenameH = Log_Logic.hashFnames(username)
+            with open(str(filenameH) + '.csv', 'a') as file:
+                Cryp_Logic.encryptFile(str(filenameH) + '.csv',delete=True)
+            file.close()
+            #atexit.register(Cryp_Logic.encryptFile(str(filenameH) + '.csv'))
             #df.loc[(df['column_name'] == some_value) & df['other_column'].isin(some_values)]
 
-
+class Log_Logic:
+    
+    #username = UI_Login_dialog.self.user_lineEdit.text()
+    def hashFnames(username):
+        password = username.encode('utf-8')
+        salt = '10'
+        salt = salt.encode('utf-8')
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt ,
+            iterations=100000,
+            backend=default_backend() )
+        return base64.urlsafe_b64encode(kdf.derive(password))
+    
+    
 '''
 if __name__ == "__main__":
     import sys

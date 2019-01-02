@@ -15,9 +15,20 @@ import requests
 from prettytable import PrettyTable
 import login
 import register
+import base64
+from io import BytesIO
+
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+Reg_Logic = register.Reg_Logic
+
 
 
 class Ui_MainWindow(object):
+    
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(510, 472)
@@ -85,8 +96,6 @@ class Ui_MainWindow(object):
         self.delButton.clicked.connect(self.delcrypto)
         self.viewButton.clicked.connect(self.viewfolio)
 
-        
-        
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -105,44 +114,60 @@ class Ui_MainWindow(object):
     def addcrypto(self):
         '''this  function adds crypto currency to 
             the portfolio csv file fromn user input'''
-    
-        file = open('portfolio.csv', 'a' )
-        fields =['Currency','Shares']
-        writer = csv.DictWriter(file, fieldnames = fields, lineterminator = '\n')
-        
-        file_empty = os.stat('portfolio.csv').st_size == 0 #check if file is empty
-       
-        if file_empty:
-           writer.writeheader()
-       
-        currency = self.cryptoAdd.text().upper()
-        amount =  self.amountAdd.text()
-        self.amountAdd.clear()
-        self.cryptoAdd.clear()
-        writer.writerow({'Currency' :currency,'Shares': amount})
-        QMessageBox.about(None, "Stop", str(amount + ': ' + currency + " has been added to portfiolio !!"))   
-        file.close()        
+        Cryp_Logic.decryptFile(str(login.filenameH) + '.csv',True)
+        with open(str(login.filenameH) + '.csv' ,'a') as file:
+            fields =['CURRENCY','SHARES']
+            writer = csv.DictWriter(file, fieldnames = fields, lineterminator = '\n')
+            
+            file_empty = os.stat(str(login.filenameH) + '.csv').st_size == 0 #check if file is empty
+           
+            if file_empty:
+               writer.writeheader()
+            #list of valiid cryptos
+            validCur = ['BTC','XRP','ETH','BCH','EOS','XLM','LTC','USDT','BSV','TRX','ADA'
+                        ,'MIOTA','XMR','BNB','DASH','XEM','ETC','NEO','MKR','ZEC','WAVES'
+                        ,'XTZ','DOGE','USDC','BTG','VET','TUSD','OMG','QTUM','ZIL']
+            #get input and validate
+            currency = self.cryptoAdd.text().upper()
+            if currency not in validCur:
+                QMessageBox.about(None, "Stop", " Sorry invalid symbol !!")    
+            amount =  self.amountAdd.text()
+            if amount <= 1 or len(amount) >= 6:
+                QMessageBox.about(None, "Stop", " Must be @ least 1 and no loner than 6 numbers long !!")  
+            
+            self.amountAdd.clear()
+            self.cryptoAdd.clear()
+            writer.writerow({'CURRENCY' :currency,'SHARES': amount})
+            QMessageBox.about(None, "Stop", str(amount + ': ' + currency + " has been added to portfiolio !!")) 
+            file.close()
+            Cryp_Logic.encryptFile(str(login.filenameH) + '.csv',delete=True)
+                
     
     def delcrypto(self): 
         '''this function deletes crypto currency from 
             the portfolio csv file fromn user input'''
-        
-        file_empty = os.stat('portfolio.csv').st_size == 0 #check if file is empty
+        Cryp_Logic.decryptFile(str(login.filenameH) + '.csv',True)
+        file_empty = os.stat(str(login.filenameH)+'.csv').st_size == 0 #check if file is empty
         if file_empty:
             QMessageBox.about(None, "Stop", " Portfolio is empty please create a portfolio !!")   
         else:
-            file = pd.read_csv('portfolio.csv')
+            file = pd.read_csv(str(login.filenameH) + '.csv')
+            #get input and validate 
             delcurrency = self.cryptoDel.text().upper()
-            file = file[file.Currency.str.contains(delcurrency) == False]
+            if delcurrency not in file:
+                QMessageBox.about(None, "Stop", " Sorry Not in protfolio !!")
+            file = file[file.CURRENCY.str.contains(delcurrency) == False]
             print(delcurrency + ' has been removed from portfilio')
-            file.to_csv('portfolio.csv', index = False)
-            QMessageBox.about(None, "Stop", str(delcurrency + " has been removed from portfolio !!"))       
+            file.to_csv(str(login.filenameH)+'.csv', index = False)
+            QMessageBox.about(None, "Stop", str(delcurrency + " has been removed from portfolio !!"))
+            Cryp_Logic.encryptFile(str(login.filenameH) + '.csv',delete=True)
+            file = None
         self.cryptoDel.clear()   
             
     def viewfolio(self):
         '''this function accesses coinmarket cap api 
             and displays current market info related to user portfolio'''
-           
+        Cryp_Logic.decryptFile(str(login.filenameH) + '.csv',True)   
         listings_url = 'https://api.coinmarketcap.com/v2/listings/?convert=USD'
         api = {
             'X-CMC_PRO_API_KEY': 'c1aa9072-eedf-48a3-8e7d-f5fe74a457b8'    
@@ -158,8 +183,9 @@ class Ui_MainWindow(object):
             url = x['id']
             ticker_url_pairs[symbol] = url
     
-        
-        file = pd.read_csv('portfolio.csv' ) 
+        file = pd.read_csv(str(login.filenameH) + '.csv')
+        #file.drop(file.index[[0]])
+        #file.columns = ['CURRENCY','SHARES']
         file.columns = map(str.upper, file.columns)
         
         total_value = 0.00
@@ -188,25 +214,71 @@ class Ui_MainWindow(object):
         table.add_row(['Total Portfolio Value :','$' + str(total_value),' ' , ' ', ' '])
         table_string = table.get_string()
         self.textBrowser.setText(table_string)
+        Cryp_Logic.encryptFile(str(login.filenameH) + '.csv',delete=True)
+        file = None
 
 class Cryp_Logic:
-    
-    #def __init__(self):
 
     def cryptoView(self):
             self.    MainWindow = QtWidgets.QMainWindow()
             self.ui = Ui_MainWindow()
             self.ui.setupUi(self.MainWindow)
             self.MainWindow.show() 
-            
-            
-    #def setimage(self):
-        #self.frame.setQFrame('btc.jpeg')
+   
+    def encodePass():
+        password = str(login.filenameH).encode('utf-8')
+        salt = '10'
+        salt = salt.encode('utf-8')
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt ,
+            iterations=100000,
+            backend=default_backend() )
+        key = base64.urlsafe_b64encode(kdf.derive(password))
+        return key
+              
+    def encryptFile(file,delete=False):
+ 
+        key = Cryp_Logic.encodePass() 
+        fer = Fernet(key)
+    
+        with open(file, 'rb') as f:
+            encrypted_file = fer.encrypt(f.read())
+        f.close()
+        with open(file +'.enc', 'ab') as f:
+            f.write(encrypted_file)
+        f.close()
+        if delete:
+            try:
+                os.remove(file)
+            except:
+                print('uh oh')
+                
+    def decryptFile(file,delete=False):
         
-        #print(table)
-        #print()
-       # print('Total Portfolio Value: ' +'$' + str(total_value))
-        #print()
+        key = Cryp_Logic.encodePass()
+        fer = Fernet(key)
+
+        with open(file +'.enc', 'rb') as f:
+            encrypted_file = fer.decrypt(f.read())
+        f.close()
+        
+        filename = str(file[:-4])
+        with open(filename + '.csv', 'ab') as f:
+            f.write(encrypted_file)
+            os.rename(filename + '.csv',str(login.filenameH) +'.csv')
+        f.close()
+        
+      
+        if delete:
+            try:
+                os.remove(file +'.enc')
+            except:
+                print('uh oh')
+        
+#atexit.register(Cryp_Logic.encryptFile(str(login.filenameH) + '.csv'))        
+    
         
 if __name__ == "__main__":
     #checks to open if nofile there will crete one
@@ -220,7 +292,7 @@ if __name__ == "__main__":
         writer = csv.DictWriter(pFile, fieldnames = fields, lineterminator = '\n')
         writer.writeheader()
         writer.writerow({'Salt' :0,'Name' :'test','Passwords': 'test'},)
-        pFile.close
+    pFile.close
         
     app = QtWidgets.QApplication(sys.argv)
     Login_Dialog = QtWidgets.QDialog()
@@ -228,4 +300,5 @@ if __name__ == "__main__":
     ui.setupUi(Login_Dialog)
     Login_Dialog.show()
     sys.exit(app.exec_())
+    
 

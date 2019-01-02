@@ -174,7 +174,7 @@ class Reg_Logic:
         return token
     
     def decrypt(self,cypher,plaintext,salty):
-        #try:
+        try:
             password = plaintext.encode('utf-8')
             print('password decrypt in= '+str(password))
             cypher = cypher[2:-1]#
@@ -197,10 +197,9 @@ class Reg_Logic:
             token = f.decrypt(cypher)
             print(token)
             return token.decode('utf-8')
-        #except:
-            #print('Sorry Invalid Token')
+        except:
+            print('Sorry Invalid Token')
                 
-   
         
 '''
 if __name__ == "__main__":
