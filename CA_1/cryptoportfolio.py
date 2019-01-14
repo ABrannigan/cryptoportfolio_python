@@ -5,8 +5,8 @@ Created on Mon Oct 29 18:24:26 2018
 @author: adam
 """
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5 import QtCore, QtWidgets
+#from PyQt5.QtGui import QIcon, QPixmap
 import csv
 import os 
 import sys
@@ -16,7 +16,7 @@ from prettytable import PrettyTable
 import login
 import register
 import base64
-from io import BytesIO
+from subprocess import Popen
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -113,16 +113,16 @@ class Ui_MainWindow(object):
     
     def addcrypto(self):
         '''this  function adds crypto currency to 
-            the portfolio csv file fromn user input'''
+            the portfolio csv file fromn user input then decrypt and encrypts file'''
         Cryp_Logic.decryptFile(str(login.filenameH) + '.csv',True)
-        with open(str(login.filenameH) + '.csv' ,'a') as file:
+        with open(str(login.filenameH) + '.csv' ,'a') as file:  
             fields =['CURRENCY','SHARES']
             writer = csv.DictWriter(file, fieldnames = fields, lineterminator = '\n')
             
             file_empty = os.stat(str(login.filenameH) + '.csv').st_size == 0 #check if file is empty
-           
             if file_empty:
                writer.writeheader()
+            
             #list of valiid cryptos
             validCur = ['BTC','XRP','ETH','BCH','EOS','XLM','LTC','USDT','BSV','TRX','ADA'
                         ,'MIOTA','XMR','BNB','DASH','XEM','ETC','NEO','MKR','ZEC','WAVES'
@@ -132,20 +132,26 @@ class Ui_MainWindow(object):
             if currency not in validCur:
                 QMessageBox.about(None, "Stop", " Sorry invalid symbol !!")    
             amount =  self.amountAdd.text()
-            if amount <= 1 or len(amount) >= 6:
-                QMessageBox.about(None, "Stop", " Must be @ least 1 and no loner than 6 numbers long !!")  
-            
-            self.amountAdd.clear()
-            self.cryptoAdd.clear()
-            writer.writerow({'CURRENCY' :currency,'SHARES': amount})
-            QMessageBox.about(None, "Stop", str(amount + ': ' + currency + " has been added to portfiolio !!")) 
-            file.close()
-            Cryp_Logic.encryptFile(str(login.filenameH) + '.csv',delete=True)
+            if float(amount) < 1:
+                QMessageBox.about(None, "Stop", " Must be @ least 1 !!")
+            elif float(amount) >= 200000:
+                QMessageBox.about(None, "Stop", " Must be  no larger than 200000 !!")
+            else:
+                self.amountAdd.clear()
+                self.cryptoAdd.clear()
+                #write to csv
+                writer.writerow({'CURRENCY' :currency,'SHARES': amount})
+                QMessageBox.about(None, "Stop", str(amount + ': ' + currency + " has been added to portfiolio !!")) 
+                file.close()
+        #encrypt remove unencrypted 
+        Cryp_Logic.encryptFile(str(login.filenameH) + '.csv',delete=True)
+        
+        #os.remove(str(login.filenameH) + '.csv')
                 
     
     def delcrypto(self): 
         '''this function deletes crypto currency from 
-            the portfolio csv file fromn user input'''
+            the portfolio csv file fromn user input then decrypt and encrypts file'''
         Cryp_Logic.decryptFile(str(login.filenameH) + '.csv',True)
         file_empty = os.stat(str(login.filenameH)+'.csv').st_size == 0 #check if file is empty
         if file_empty:
@@ -154,19 +160,17 @@ class Ui_MainWindow(object):
             file = pd.read_csv(str(login.filenameH) + '.csv')
             #get input and validate 
             delcurrency = self.cryptoDel.text().upper()
-            if delcurrency not in file:
-                QMessageBox.about(None, "Stop", " Sorry Not in protfolio !!")
-            file = file[file.CURRENCY.str.contains(delcurrency) == False]
-            print(delcurrency + ' has been removed from portfilio')
+            file = file[file.CURRENCY.str.contains(delcurrency) == True]
             file.to_csv(str(login.filenameH)+'.csv', index = False)
             QMessageBox.about(None, "Stop", str(delcurrency + " has been removed from portfolio !!"))
-            Cryp_Logic.encryptFile(str(login.filenameH) + '.csv',delete=True)
-            file = None
+        Cryp_Logic.encryptFile(str(login.filenameH) + '.csv',delete=True)    
+        file = None
         self.cryptoDel.clear()   
             
     def viewfolio(self):
         '''this function accesses coinmarket cap api 
-            and displays current market info related to user portfolio'''
+            and displays current market info related to user portfolio 
+            then decrypt and encrypts file'''
         Cryp_Logic.decryptFile(str(login.filenameH) + '.csv',True)   
         listings_url = 'https://api.coinmarketcap.com/v2/listings/?convert=USD'
         api = {
@@ -220,12 +224,14 @@ class Ui_MainWindow(object):
 class Cryp_Logic:
 
     def cryptoView(self):
-            self.    MainWindow = QtWidgets.QMainWindow()
-            self.ui = Ui_MainWindow()
-            self.ui.setupUi(self.MainWindow)
-            self.MainWindow.show() 
+        '''this function kaunces main window'''
+        self.    MainWindow = QtWidgets.QMainWindow()
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self.MainWindow)
+        self.MainWindow.show() 
    
     def encodePass():
+        '''this function hashes password for the following functions'''
         password = str(login.filenameH).encode('utf-8')
         salt = '10'
         salt = salt.encode('utf-8')
@@ -239,44 +245,46 @@ class Cryp_Logic:
         return key
               
     def encryptFile(file,delete=False):
- 
+        '''this function encrypts file by reading in encrypting
+            deletes old file and has new encrypted file'''
         key = Cryp_Logic.encodePass() 
         fer = Fernet(key)
     
         with open(file, 'rb') as f:
             encrypted_file = fer.encrypt(f.read())
-        f.close()
+            f.close()
+            
         with open(file +'.enc', 'ab') as f:
             f.write(encrypted_file)
-        f.close()
+            f.close()
+            
         if delete:
-            try:
-                os.remove(file)
-            except:
-                print('uh oh')
+            os.remove(file)
+
                 
     def decryptFile(file,delete=False):
-        
+        '''this function encrypts file by reading in encrypting
+            deletes old encrypted file and has new plaintext file
+                also renames to the original name '''
         key = Cryp_Logic.encodePass()
         fer = Fernet(key)
 
         with open(file +'.enc', 'rb') as f:
-            encrypted_file = fer.decrypt(f.read())
-        f.close()
+            decrypted_file = fer.decrypt(f.read())
+            f.close()
         
         filename = str(file[:-4])
-        with open(filename + '.csv', 'ab') as f:
-            f.write(encrypted_file)
-            os.rename(filename + '.csv',str(login.filenameH) +'.csv')
-        f.close()
         
+        with open(filename + '.csv', 'ab') as f:
+            f.write(decrypted_file)
+            f.close()
+        
+        os.rename(filename + '.csv',str(login.filenameH) +'.csv')
       
         if delete:
-            try:
-                os.remove(file +'.enc')
-            except:
-                print('uh oh')
-        
+            os.remove(file +'.enc')
+            
+            
 #atexit.register(Cryp_Logic.encryptFile(str(login.filenameH) + '.csv'))        
     
         

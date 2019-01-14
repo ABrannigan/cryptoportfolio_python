@@ -5,17 +5,18 @@ Created on Mon Oct 29 18:24:26 2018
 @author: adam
 """
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMessageBox
 import cryptoportfolio
 import register
 import pandas as pd
 import base64
-from cryptography.fernet import Fernet
+#from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-import atexit
+#import atexit
+import os
 Reg_Logic = register.Reg_Logic()
 Cryp_Logic = cryptoportfolio.Cryp_Logic
 
@@ -91,6 +92,8 @@ class Ui_Login_Dialog(object):
         self.cancel_btn.setText(_translate("Login_Dialog", "Cancel"))
         
     def login(self):
+        '''this function logs in user to system by comareing stored credentials to 
+            credentiaals entered'''
         data_pFile = pd.read_csv('Pfile.csv',header='infer')
         data_pFile.columns = ['Salt','Name','Passwords']
         username = self.user_lineEdit.text()
@@ -115,19 +118,22 @@ class Ui_Login_Dialog(object):
             QMessageBox.about(None, "Stop", " Incorrect Username and Password !!")        
         else:
             
-            Cryp_Logic.cryptoView(self)
+            #launch main view create file for user and encrypt
             global filenameH 
             filenameH = Log_Logic.hashFnames(username)
             with open(str(filenameH) + '.csv', 'a') as file:
-                Cryp_Logic.encryptFile(str(filenameH) + '.csv',delete=True)
-            file.close()
+                file.close()
+            Cryp_Logic.encryptFile(str(filenameH) + '.csv',delete=True)
+            Cryp_Logic.cryptoView(self)
+            
             #atexit.register(Cryp_Logic.encryptFile(str(filenameH) + '.csv'))
             #df.loc[(df['column_name'] == some_value) & df['other_column'].isin(some_values)]
 
 class Log_Logic:
     
-    #username = UI_Login_dialog.self.user_lineEdit.text()
+    
     def hashFnames(username):
+        '''this function hashes filnames'''
         password = username.encode('utf-8')
         salt = '10'
         salt = salt.encode('utf-8')

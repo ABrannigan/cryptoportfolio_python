@@ -4,17 +4,17 @@ Created on Mon Oct 29 18:24:26 2018
 
 @author: adam
 """
-from PyQt5 import QtCore, QtGui, QtWidgets
+#from PyQt5 import QtCore, QtGui, QtWidgets
 import pandas as pd
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5 import QtCore, QtWidgets
+#from PyQt5.QtGui import QIcon, QPixmap
 import re
 import cryptoportfolio
 import login
 import csv
 import base64
-import binascii
+#import binascii
 import os
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -102,6 +102,8 @@ class Ui_Register_Dialog(object):
         
         
     def addUser(self):
+        '''this function registers user to the sytem validates input 
+            stores username ,salt and encrypted password to csv'''
         pFile = pd.read_csv('Pfile.csv',header='infer')
         username = self.username_lineEdit.text()
         password = self.password_lineEdit.text()
@@ -150,13 +152,16 @@ class Reg_Logic:
     #def __init__(self):
 
     def regView(self):
-            self.Register_Dialog = QtWidgets.QDialog()
-            self.ui = Ui_Register_Dialog()
-            self.ui.setupUi(self.Register_Dialog)
-            self.Register_Dialog.show()    
+        '''this function hashes filnames launces register view'''
+        self.Register_Dialog = QtWidgets.QDialog()
+        self.ui = Ui_Register_Dialog()
+        self.ui.setupUi(self.Register_Dialog)
+        self.Register_Dialog.show()    
             
     
     def encrypt(self,plaintext,salty):
+        '''this function encrypts user passwords hashing function
+            and AES 128bit'''
         password = plaintext.encode('utf-8')
         print('password = '+str(password))
         salt = salty
@@ -174,6 +179,8 @@ class Reg_Logic:
         return token
     
     def decrypt(self,cypher,plaintext,salty):
+        '''this function decrypts user passwords hashing function
+            and AES 128bit'''
         try:
             password = plaintext.encode('utf-8')
             print('password decrypt in= '+str(password))
